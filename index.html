@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cotizaciones · SP MEDIA</title>
+<style>
+  :root{
+    --rojo:#FF0000;
+    --carbon:#373435;
+    --gris:#727376;
+    --blanco:#FDFDFD;
+    --linea:#e3e3e3;
+    --fila:#f4f4f4;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:#5a5a5c;color:var(--carbon);
+    font-family:Arial,Helvetica,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .impact{font-family:Impact,'Haettenschweiler','Arial Narrow Bold',sans-serif;letter-spacing:.5px;}
+
+  /* ====== BARRA DE HERRAMIENTAS (solo pantalla) ====== */
+  .toolbar{position:sticky;top:0;z-index:50;background:var(--carbon);color:#fff;
+    display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;
+    box-shadow:0 2px 8px rgba(0,0,0,.35);}
+  .toolbar .brand{font-weight:bold;margin-right:auto;display:flex;align-items:center;gap:8px;font-size:15px;}
+  .toolbar .brand .sp{background:var(--rojo);color:#fff;padding:2px 7px;border-radius:3px;font-family:Impact,sans-serif;}
+  .btn{background:#4a4749;color:#fff;border:1px solid #5f5c5e;border-radius:6px;
+    padding:9px 13px;font-size:13px;font-weight:bold;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+  .btn:hover{background:#5a575a;}
+  .btn.rojo{background:var(--rojo);border-color:var(--rojo);}
+  .btn.rojo:hover{background:#d40000;}
+  .btn.wa{background:#25D366;border-color:#25D366;color:#0b3d1e;}
+  .btn.wa:hover{background:#1ebe5a;}
+  .btn.ghost{background:transparent;border-color:#6a676a;}
+  select.saved{background:#4a4749;color:#fff;border:1px solid #5f5c5e;border-radius:6px;padding:9px;font-size:13px;max-width:230px;}
+
+  .wrap{max-width:900px;margin:22px auto;padding:0 14px 60px;}
+
+
+  /* ====== LOGIN ====== */
+  body.noauth .toolbar,body.noauth .wrap{display:none !important;}
+  .loginwrap{display:none;position:fixed;inset:0;z-index:200;background:var(--carbon);
+    align-items:center;justify-content:center;padding:20px;}
+  body.noauth .loginwrap{display:flex;}
+  .logincard{background:#2b2829;border:1px solid #4a4749;border-radius:14px;padding:30px 26px;
+    width:100%;max-width:360px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.5);}
+  .loginlogo{font-size:34px;color:#fff;}
+  .loginlogo .sp{background:var(--rojo);padding:2px 9px;border-radius:5px;}
+  .loginsub{color:#b8b8ba;font-size:13px;letter-spacing:2px;margin:4px 0 22px;text-transform:uppercase;}
+  #email,#password{width:100%;padding:13px;border-radius:8px;border:1px solid #5f5c5e;background:#1f1d1e;color:#fff;font-size:15px;margin-bottom:12px;}
+  #email:focus,#password:focus{outline:none;border-color:var(--rojo);}
+  #loginbtn{width:100%;padding:13px;border-radius:8px;border:none;background:var(--rojo);color:#fff;font-size:15px;font-weight:bold;cursor:pointer;}
+  #loginbtn:hover{background:#d40000;}
+  #loginbtn:disabled{opacity:.6;cursor:default;}
+  .loginmsg{color:#7CFC9A;font-size:13px;min-height:18px;margin:12px 0 0;}
+  .loginmsg.err{color:#ff8a8a;}
+  .loginhint{color:#8a8788;font-size:11.5px;line-height:1.5;margin:16px 0 0;}
+
+  /* ====== HOJA DE COTIZACIÓN ====== */
+  .hoja{background:#fff;box-shadow:0 6px 30px rgba(0,0,0,.4);overflow:hidden;}
+
+  /* Header */
+  .hd{background:var(--carbon);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:24px 30px;gap:16px;}
+  .hd .logo-img{height:52px;width:auto;max-width:62%;display:block;}
+  .hd .sub{color:#b8b8ba;font-size:10px;letter-spacing:5px;margin-top:8px;font-family:Arial;}
+  .badge{background:var(--rojo);color:#fff;font-size:38px;padding:10px 26px 10px 34px;
+    clip-path:polygon(14% 0,100% 0,100% 100%,0 100%);}
+
+  .body{padding:20px 30px 0;}
+
+  /* Emisor / número */
+  .emisor{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:2px solid var(--carbon);}
+  .emisor .lbl{color:var(--rojo);font-size:11px;font-weight:bold;letter-spacing:1px;}
+  .emisor h1{margin:2px 0 3px;font-size:22px;}
+  .emisor .ruc{font-size:12px;color:var(--gris);}
+  .emisor .right{text-align:right;font-size:12px;}
+  .emisor .right .num{font-size:20px;font-weight:bold;color:var(--carbon);}
+  .emisor input{font-family:inherit;}
+
+  /* Banner de sección angular */
+  .sec{display:flex;align-items:center;gap:0;margin:16px 0 8px;}
+  .sec .tag{background:var(--carbon);color:var(--rojo);font-size:24px;padding:6px 30px 6px 14px;
+    clip-path:polygon(0 0,100% 0,86% 100%,0 100%);}
+  .sec .line{flex:1;height:6px;background:var(--rojo);margin-left:-6px;}
+  .sec .tri{width:34px;height:34px;background:var(--carbon);margin-left:8px;
+    clip-path:polygon(100% 0,100% 100%,0 100%);}
+
+  /* Selector de cliente guardado */
+  .pickrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px;font-size:13px;color:var(--gris);}
+  .pickrow select{padding:6px 8px;border:1px solid var(--linea);border-radius:6px;font-size:13px;min-width:200px;}
+  .btn2{background:var(--carbon);color:#fff;border:none;border-radius:6px;padding:6px 10px;font-size:12px;font-weight:bold;cursor:pointer;}
+  .btn2.del{background:#8a8a8a;}
+  .btn2:hover{opacity:.9;}
+
+  /* Cliente */
+  .cliente{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--linea);}
+  .cliente .cell{padding:8px 10px;border-bottom:1px solid var(--linea);display:flex;align-items:center;gap:6px;font-size:13px;}
+  .cliente .cell:nth-child(odd){border-right:1px solid var(--linea);}
+  .cliente .cell b{white-space:nowrap;}
+
+  /* Inputs inline estilo documento */
+  .fld{border:none;border-bottom:1px dashed transparent;background:transparent;font-size:13px;
+    color:var(--carbon);padding:2px 3px;width:100%;font-family:inherit;}
+  .fld:focus{outline:none;border-bottom:1px dashed var(--rojo);background:#fff7f7;}
+  .fld::placeholder{color:#bdbdbd;}
+
+  /* Tabla de items */
+  table.items{width:100%;border-collapse:collapse;margin-top:4px;font-size:13px;}
+  table.items thead th{background:var(--rojo);color:#fff;padding:8px 10px;text-align:left;font-size:12px;letter-spacing:.5px;}
+  table.items thead th.c{text-align:center;}
+  table.items thead th.r{text-align:right;}
+  table.items tbody td{padding:4px 10px;border-bottom:1px solid var(--linea);vertical-align:middle;}
+  table.items tbody tr:nth-child(even){background:var(--fila);}
+  table.items .n{width:34px;text-align:center;color:var(--gris);}
+  table.items .cant{width:70px;}
+  table.items .precio{width:120px;}
+  table.items .sub{width:120px;text-align:right;font-weight:bold;white-space:nowrap;}
+  table.items input.num{text-align:right;}
+  table.items .cant input{text-align:center;}
+  .delrow{background:none;border:none;color:var(--rojo);cursor:pointer;font-size:16px;font-weight:bold;line-height:1;padding:0 4px;}
+  .addrow{margin:8px 0 0;}
+
+  /* Totales */
+  .totrow{display:flex;gap:16px;margin-top:2px;}
+  .nota{flex:1;font-size:11px;color:var(--gris);padding-top:8px;}
+  .nota textarea{width:100%;border:1px dashed transparent;background:transparent;resize:vertical;
+    font-family:inherit;font-size:11px;color:var(--gris);min-height:38px;}
+  .nota textarea:focus{outline:none;border-color:var(--rojo);background:#fff7f7;}
+  .totals{width:300px;}
+  .totals .tr{display:flex;justify-content:space-between;padding:7px 12px;background:var(--fila);border-bottom:1px solid var(--linea);font-size:13px;}
+  .totals .tr b{font-weight:bold;}
+  .totals .total{background:var(--rojo);color:#fff;font-size:17px;font-weight:bold;padding:11px 12px;}
+
+  /* Términos */
+  .terms{border:1px dashed transparent;font-size:12.5px;line-height:1.7;padding:2px;}
+  .terms:focus{outline:none;border-color:var(--rojo);background:#fff7f7;}
+  .terms ul{margin:6px 0;padding-left:18px;}
+
+  .firma{display:flex;justify-content:space-between;align-items:flex-end;margin-top:26px;padding-top:6px;font-size:12px;}
+  .firma .l{border-top:1px solid var(--carbon);padding-top:4px;width:230px;color:var(--gris);}
+  .firma .r{font-weight:bold;}
+
+  /* Footer */
+  .ft{background:var(--carbon);color:#fff;display:flex;justify-content:space-between;align-items:center;
+    padding:22px 30px;margin-top:22px;}
+  .ft .info{font-size:12px;color:#c9c9cb;line-height:1.7;}
+  .ft .info .logo{margin-bottom:6px;}
+  .ft .info .logo .sp{font-size:24px;padding:2px 8px;}
+  .ft .info .logo .media{font-size:24px;}
+  .ft .info .logo .play{border-left-width:10px;border-top-width:7px;border-bottom-width:7px;}
+  .ft .gracias{background:var(--rojo);color:#fff;text-align:right;padding:14px 24px 14px 40px;
+    clip-path:polygon(18% 0,100% 0,100% 100%,0 100%);}
+  .ft .gracias .big{font-size:30px;line-height:1;}
+  .ft .gracias .small{font-size:15px;}
+
+  .hint{color:#cfcfcf;font-size:12px;text-align:center;margin:14px 0 0;}
+
+  /* ====== IMPRESIÓN / PDF ====== */
+  @media print{
+    @page{size:Letter;margin:0;}
+    html,body{background:#fff;}
+    .toolbar,.addrow,.delrow,.hint,.no-print{display:none !important;}
+    .wrap{margin:0;padding:0;max-width:100%;}
+    .hoja{box-shadow:none;}
+    .fld:focus,.terms:focus,.nota textarea:focus{background:transparent;border-color:transparent;}
+    .fld,.terms,.nota textarea{border-color:transparent !important;}
+  }
+
+  @media(max-width:640px){
+    .hd{flex-direction:column;gap:14px;align-items:flex-start;}
+    .badge{align-self:flex-end;font-size:30px;}
+    .cliente{grid-template-columns:1fr;}
+    .cliente .cell:nth-child(odd){border-right:none;}
+    .totrow{flex-direction:column;}
+    .totals{width:100%;}
+    .body{padding:16px 16px 0;}
+    .hd,.ft{padding:18px 16px;}
+    .tablescroll{overflow-x:auto;}
+  }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<!-- LOGIN -->
+<div id="login" class="loginwrap">
+  <div class="logincard">
+    <div class="loginlogo impact"><span class="sp">SP</span>&nbsp;MEDIA</div>
+    <p class="loginsub">Cotizaciones · acceso</p>
+    <input id="email" type="email" inputmode="email" placeholder="tu correo" autocomplete="email" value="sergitopinzon@gmail.com">
+    <input id="password" type="password" placeholder="contraseña" autocomplete="current-password">
+    <button id="loginbtn" onclick="entrar()">Entrar</button>
+    <p id="loginmsg" class="loginmsg"></p>
+    <p class="loginhint">Ingresa con tu correo y contraseña.</p>
+  </div>
+</div>
+
+<!-- BARRA DE HERRAMIENTAS -->
+<div class="toolbar no-print">
+  <div class="brand"><span class="sp impact">SP</span> Cotizaciones</div>
+  <button class="btn" onclick="nueva()">＋ Nueva</button>
+  <button class="btn rojo" onclick="guardar()">💾 Guardar</button>
+  <button class="btn" onclick="exportar()">📄 Exportar PDF</button>
+  <button class="btn wa" onclick="enviarWhatsApp()">💬 WhatsApp</button>
+  <select class="saved" id="lista" onchange="cargar(this.value)">
+    <option value="">— Cotizaciones guardadas —</option>
+  </select>
+  <button class="btn ghost" onclick="eliminar()">🗑 Eliminar</button>
+  <button class="btn ghost" onclick="cambiarContrasena()">🔑 Contraseña</button>
+  <button class="btn ghost" onclick="cerrarSesion()">Salir</button>
+</div>
+
+<div class="wrap">
+  <div class="hoja" id="hoja">
+
+    <!-- HEADER -->
+    <div class="hd">
+      <div>
+        <img class="logo-img" src="sp_media_logo.png" alt="SP MEDIA">
+        <div class="sub">PRODUCCIÓN AUDIOVISUAL</div>
+      </div>
+      <div class="badge impact">COTIZACIÓN</div>
+    </div>
+
+    <div class="body">
+      <!-- EMISOR -->
+      <div class="emisor">
+        <div>
+          <div class="lbl">EMISOR</div>
+          <h1>Sergio Pinzón</h1>
+          <div class="ruc">RUC: 8-868-2182&nbsp;&nbsp;&nbsp;DV: 16</div>
+        </div>
+        <div class="right">
+          COTIZACIÓN N°<br>
+          <span class="num">[<input class="fld" id="numero" style="width:70px;text-align:center;font-weight:bold" value="0001">]</span><br>
+          Fecha: <input class="fld" id="fecha" style="width:120px;text-align:right" placeholder="DD/MM/AAAA">
+        </div>
+      </div>
+
+      <!-- CLIENTE -->
+      <div class="sec"><div class="tag impact">CLIENTE</div><div class="line"></div><div class="tri"></div></div>
+      <div class="pickrow no-print">
+        <span>👥 Cliente guardado:</span>
+        <select id="pickcliente" onchange="fillCliente(this.value)">
+          <option value="">— Selecciona un cliente —</option>
+        </select>
+        <button class="btn2" onclick="guardarCliente()">💾 Guardar este cliente</button>
+        <button class="btn2 del" onclick="eliminarCliente()">🗑 Quitar cliente</button>
+      </div>
+      <div class="cliente">
+        <div class="cell"><b>Cliente / Empresa:</b><input class="fld" id="c_empresa" placeholder="Nombre del cliente"></div>
+        <div class="cell"><b>Teléfono:</b><input class="fld" id="c_tel" placeholder="+507"></div>
+        <div class="cell"><b>Contacto:</b><input class="fld" id="c_contacto" placeholder="Persona de contacto"></div>
+        <div class="cell"><b>Correo:</b><input class="fld" id="c_correo" placeholder="correo@ejemplo.com"></div>
+      </div>
+
+      <!-- ITEMS -->
+      <div class="tablescroll">
+      <table class="items">
+        <thead>
+          <tr>
+            <th class="c">N°</th>
+            <th>DESCRIPCIÓN (EQUIPO / SERVICIO)</th>
+            <th class="c">CANT.</th>
+            <th class="r">PRECIO UNIT.</th>
+            <th class="r">SUBTOTAL</th>
+            <th class="no-print"></th>
+          </tr>
+        </thead>
+        <tbody id="filas"></tbody>
+      </table>
+      </div>
+      <button class="btn addrow no-print" onclick="agregarFila()">＋ Agregar fila</button>
+
+      <!-- TOTALES -->
+      <div class="totrow">
+        <div class="nota">
+          <textarea id="nota">Precios en Balboas (B/.).  ITBMS (7%) sobre el subtotal.
+Forma de pago: 50% adelanto, 50% contra entrega.</textarea>
+        </div>
+        <div class="totals">
+          <div class="tr"><span>Subtotal</span><b id="t_sub">B/. 0.00</b></div>
+          <div class="tr"><span>ITBMS (7%)</span><b id="t_itbms">B/. 0.00</b></div>
+          <div class="total impact" style="display:flex;justify-content:space-between">
+            <span>TOTAL</span><span id="t_total">B/. 0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TÉRMINOS -->
+      <div class="sec"><div class="tag impact" style="font-size:20px;padding-right:40px">TÉRMINOS Y CONDICIONES</div><div class="line"></div><div class="tri"></div></div>
+      <div class="terms" id="terms" contenteditable="true">
+        <ul>
+          <li>Esta cotización tiene una validez de 15 días a partir de la fecha de emisión.</li>
+          <li>Los precios están expresados en Balboas (B/.) e incluyen ITBMS donde aplique.</li>
+          <li>Forma de pago: 50% de adelanto y 50% contra entrega.  [Editar según acuerdo]</li>
+          <li>Tiempo de entrega: [ ] días hábiles luego de la aprobación de la cotización.</li>
+          <li>Los precios pueden variar sin previo aviso una vez vencida la validez.</li>
+          <li>Cualquier trabajo adicional no contemplado se cotizará por separado.</li>
+        </ul>
+      </div>
+
+      <div class="firma">
+        <div class="l">Firma / Aprobación del Cliente</div>
+        <div class="r">Sergio Pinzón — SP MEDIA</div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="ft">
+      <div class="info">
+        <img src="sp_media_logo.png" alt="SP MEDIA" style="height:30px;display:block;margin-bottom:8px">
+        Producción Audiovisual<br>
+        spfilmspty@gmail.com &nbsp;·&nbsp; +507 6444-8061
+      </div>
+      <div class="gracias impact">
+        <div class="big">GRACIAS</div>
+        <div class="small">POR SU PREFERENCIA</div>
+      </div>
+    </div>
+
+  </div>
+  <p class="hint no-print">💡 Escribe directamente sobre la cotización. Al “Exportar PDF”, en el diálogo elige <b>“Guardar como PDF”</b>. Todo se guarda en este dispositivo.</p>
+</div>
+
+<script>
+const SB_URL='https://rrnaziahkwatybudapqj.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJybmF6aWFoa3dhdHlidWRhcHFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MzU0MjksImV4cCI6MjEwMjQxMTQyOX0.zQSABDEtuk3owEaImLfixVEnKzisoO8II65DkFA5SRI';
+const sb = window.supabase.createClient(SB_URL, SB_KEY, {auth:{persistSession:true,detectSessionInUrl:true,autoRefreshToken:true}});
+let uid=null, cacheClientes={};
+
+const money=n=>'B/. '+(Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc=s=>String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;');
+const val=id=>document.getElementById(id).value;
+const set=(id,v)=>{document.getElementById(id).value=v||'';};
+
+/* ---------- AUTENTICACIÓN ---------- */
+async function initAuth(){
+  const {data:{session}} = await sb.auth.getSession();
+  aplicarSesion(session);
+  sb.auth.onAuthStateChange((_e,s)=>aplicarSesion(s));
+}
+function aplicarSesion(session){
+  if(session && session.user){
+    uid=session.user.id;
+    document.body.classList.remove('noauth');
+    arrancarApp();
+  }else{
+    uid=null;
+    document.body.classList.add('noauth');
+  }
+}
+async function entrar(){
+  const email=val('email').trim();
+  const password=val('password');
+  const msg=document.getElementById('loginmsg');
+  const btn=document.getElementById('loginbtn');
+  if(!email||!password){msg.className='loginmsg err';msg.textContent='Escribe correo y contraseña.';return;}
+  btn.disabled=true; msg.className='loginmsg'; msg.textContent='Entrando...';
+  const {error}=await sb.auth.signInWithPassword({email,password});
+  btn.disabled=false;
+  if(error){msg.className='loginmsg err';msg.textContent='Error: '+error.message;}
+}
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.body.classList.contains('noauth'))entrar();});
+async function cambiarContrasena(){
+  const nueva=prompt('Nueva contraseña (mínimo 6 caracteres):');
+  if(!nueva)return;
+  if(nueva.length<6){alert('Mínimo 6 caracteres.');return;}
+  const {error}=await sb.auth.updateUser({password:nueva});
+  if(error){toast('Error: '+error.message);}else{toast('Contraseña actualizada ✔');}
+}
+async function cerrarSesion(){await sb.auth.signOut();location.reload();}
+
+/* ---------- FILAS DE ITEMS ---------- */
+function filaHTML(desc='',cant='',precio=''){
+  return `<tr>
+    <td class="n"></td>
+    <td><input class="fld" placeholder="Equipo o servicio" value="${esc(desc)}" oninput="recalc()"></td>
+    <td class="cant"><input class="fld num" type="number" min="0" step="1" value="${cant}" oninput="recalc()"></td>
+    <td class="precio"><input class="fld num" type="number" min="0" step="0.01" placeholder="0.00" value="${precio}" oninput="recalc()"></td>
+    <td class="sub">B/. 0.00</td>
+    <td class="no-print"><button class="delrow" title="Quitar" onclick="this.closest('tr').remove();recalc()">×</button></td>
+  </tr>`;
+}
+function agregarFila(d,c,p){document.getElementById('filas').insertAdjacentHTML('beforeend',filaHTML(d,c,p));recalc();}
+function recalc(){
+  let sub=0;
+  document.querySelectorAll('#filas tr').forEach((tr,i)=>{
+    tr.querySelector('.n').textContent=i+1;
+    const c=parseFloat(tr.querySelectorAll('input')[1].value)||0;
+    const p=parseFloat(tr.querySelectorAll('input')[2].value)||0;
+    const s=c*p; sub+=s; tr.querySelector('.sub').textContent=money(s);
+  });
+  const itbms=sub*0.07;
+  document.getElementById('t_sub').textContent=money(sub);
+  document.getElementById('t_itbms').textContent=money(itbms);
+  document.getElementById('t_total').textContent=money(sub+itbms);
+}
+
+/* ---------- DATOS ---------- */
+function datos(){
+  const items=[...document.querySelectorAll('#filas tr')].map(tr=>{
+    const i=tr.querySelectorAll('input');
+    return {desc:i[0].value,cant:i[1].value,precio:i[2].value};
+  }).filter(x=>x.desc||x.cant||x.precio);
+  return {
+    num:parseInt(val('numero'))||0, fecha:val('fecha'),
+    empresa:val('c_empresa'),tel:val('c_tel'),contacto:val('c_contacto'),correo:val('c_correo'),
+    nota:document.getElementById('nota').value,
+    terms:document.getElementById('terms').innerHTML,
+    items
+  };
+}
+
+async function guardar(){
+  const d=datos();
+  if(!d.num){alert('Ponle un número a la cotización.');return false;}
+  const {error}=await sb.from('cotizaciones').upsert({
+    user_id:uid,num:d.num,fecha:d.fecha,empresa:d.empresa,tel:d.tel,contacto:d.contacto,
+    correo:d.correo,nota:d.nota,terms:d.terms,items:d.items,updated_at:new Date().toISOString()
+  },{onConflict:'user_id,num'});
+  if(error){toast('Error al guardar: '+error.message);return false;}
+  await autoGuardarCliente();
+  await loadCotizaciones();
+  toast('Guardada ✔  N° '+String(d.num).padStart(4,'0'));
+  return true;
+}
+async function loadCotizaciones(){
+  const sel=document.getElementById('lista');
+  const {data,error}=await sb.from('cotizaciones').select('num,empresa').order('num',{ascending:false});
+  if(error)return;
+  sel.innerHTML='<option value="">— Cotizaciones guardadas ('+data.length+') —</option>'+
+    data.map(d=>`<option value="${d.num}">N° ${String(d.num).padStart(4,'0')} · ${esc(d.empresa||'sin cliente')}</option>`).join('');
+}
+async function cargar(num){
+  if(!num)return;
+  const {data,error}=await sb.from('cotizaciones').select('*').eq('num',num).single();
+  if(error||!data)return;
+  set('numero',String(data.num).padStart(4,'0'));set('fecha',data.fecha);
+  set('c_empresa',data.empresa);set('c_tel',data.tel);set('c_contacto',data.contacto);set('c_correo',data.correo);
+  document.getElementById('nota').value=data.nota||'';
+  document.getElementById('terms').innerHTML=data.terms||'';
+  document.getElementById('filas').innerHTML='';
+  const its=(data.items&&data.items.length?data.items:[{}]);
+  its.forEach(it=>agregarFila(it.desc,it.cant,it.precio));
+  recalc();
+}
+async function eliminar(){
+  const num=parseInt(val('numero'))||0;
+  if(!num)return;
+  if(!confirm('¿Eliminar la cotización N° '+String(num).padStart(4,'0')+'?'))return;
+  const {error}=await sb.from('cotizaciones').delete().eq('num',num);
+  if(error){toast('Error: '+error.message);return;}
+  await loadCotizaciones(); toast('Eliminada');
+}
+async function nextNumber(){
+  const {data}=await sb.from('cotizaciones').select('num').order('num',{ascending:false}).limit(1);
+  return ((data&&data[0]?data[0].num:0)+1);
+}
+
+/* ---------- CLIENTES ---------- */
+async function loadClientes(){
+  const {data,error}=await sb.from('clientes').select('*').order('empresa');
+  if(error)return;
+  cacheClientes={}; data.forEach(c=>cacheClientes[c.empresa]=c);
+  const sel=document.getElementById('pickcliente');
+  sel.innerHTML='<option value="">— Selecciona un cliente ('+data.length+') —</option>'+
+    data.map(c=>`<option value="${esc(c.empresa)}">${esc(c.empresa)}</option>`).join('');
+}
+async function autoGuardarCliente(){
+  const nombre=val('c_empresa').trim(); if(!nombre)return;
+  await sb.from('clientes').upsert({
+    user_id:uid,empresa:nombre,tel:val('c_tel'),contacto:val('c_contacto'),correo:val('c_correo'),
+    updated_at:new Date().toISOString()
+  },{onConflict:'user_id,empresa'});
+  await loadClientes();
+}
+async function guardarCliente(){
+  const nombre=val('c_empresa').trim();
+  if(!nombre){alert('Escribe primero el nombre del cliente / empresa.');return;}
+  await autoGuardarCliente();
+  document.getElementById('pickcliente').value=nombre;
+  toast('Cliente guardado ✔  '+nombre);
+}
+function fillCliente(nombre){
+  if(!nombre)return; const c=cacheClientes[nombre]; if(!c)return;
+  set('c_empresa',c.empresa);set('c_tel',c.tel);set('c_contacto',c.contacto);set('c_correo',c.correo);
+}
+async function eliminarCliente(){
+  const nombre=document.getElementById('pickcliente').value||val('c_empresa').trim();
+  if(!cacheClientes[nombre]){alert('Ese cliente no está guardado.');return;}
+  if(!confirm('¿Quitar del directorio a "'+nombre+'"?'))return;
+  await sb.from('clientes').delete().eq('empresa',nombre);
+  await loadClientes(); toast('Cliente eliminado');
+}
+
+/* ---------- WHATSAPP ---------- */
+function telWhats(raw){let d=(raw||'').replace(/\D/g,'');if(!d)return '';if(d.length===8)d='507'+d;return d;}
+async function enviarWhatsApp(){
+  const d=datos(); let sub=0;
+  const lineas=d.items.map((it,i)=>{const c=parseFloat(it.cant)||0,p=parseFloat(it.precio)||0,s=c*p;sub+=s;
+    return `${i+1}. ${it.desc||'(sin descripción)'} — ${c} x ${money(p)} = ${money(s)}`;});
+  const itbms=sub*0.07,total=sub+itbms;
+  let msg=`*COTIZACIÓN N° ${String(d.num).padStart(4,'0')} — SP MEDIA*\n`;
+  if(d.empresa)msg+=`Cliente: ${d.empresa}\n`;
+  if(d.fecha)msg+=`Fecha: ${d.fecha}\n`;
+  msg+=`--------------------------------\n`+(lineas.length?lineas.join('\n'):'(sin ítems)')+'\n';
+  msg+=`--------------------------------\nSubtotal: ${money(sub)}\nITBMS (7%): ${money(itbms)}\n*TOTAL: ${money(total)}*\n\n`;
+  msg+=`Validez 15 días. Forma de pago: 50% adelanto, 50% contra entrega.\nSP MEDIA · Producción Audiovisual · +507 6444-8061`;
+  await guardar();
+  window.open('https://wa.me/'+telWhats(d.tel)+'?text='+encodeURIComponent(msg),'_blank');
+}
+
+/* ---------- EXPORTAR + CONTEO ---------- */
+let _avanzar=false;
+async function exportar(){
+  const d=datos(); if(!d.num){alert('Ponle un número a la cotización.');return;}
+  const ok=await guardar(); if(!ok)return;
+  _avanzar=true; window.print();
+}
+window.addEventListener('afterprint',async()=>{if(_avanzar){_avanzar=false;await nueva();toast('Exportada ✔  Lista la N° '+val('numero'));}});
+
+/* ---------- NUEVA ---------- */
+async function nueva(){
+  const next=await nextNumber();
+  set('numero',String(next).padStart(4,'0'));
+  const h=new Date();
+  set('fecha',String(h.getDate()).padStart(2,'0')+'/'+String(h.getMonth()+1).padStart(2,'0')+'/'+h.getFullYear());
+  ['c_empresa','c_tel','c_contacto','c_correo'].forEach(id=>set(id,''));
+  document.getElementById('filas').innerHTML='';
+  agregarFila('','','');agregarFila('','','');
+  document.getElementById('lista').value='';
+  document.getElementById('pickcliente').value='';
+  recalc();
+}
+
+/* ---------- AVISO ---------- */
+let tt;
+function toast(m){clearTimeout(tt);let el=document.getElementById('toast');
+  if(!el){el=document.createElement('div');el.id='toast';
+    el.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:11px 20px;border-radius:8px;font-size:14px;z-index:99;box-shadow:0 4px 16px rgba(0,0,0,.4)';
+    document.body.appendChild(el);}
+  el.textContent=m;el.style.opacity='1';tt=setTimeout(()=>el.style.opacity='0',1900);}
+
+/* ---------- ARRANQUE DE LA APP ---------- */
+let _appReady=false;
+async function arrancarApp(){
+  if(_appReady)return; _appReady=true;
+  await loadClientes();
+  await loadCotizaciones();
+  await nueva();
+}
+document.body.classList.add('noauth');
+initAuth();
+</script>
+</body>
+</html>
