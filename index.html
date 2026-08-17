@@ -12,6 +12,8 @@
 <meta name="apple-mobile-web-app-title" content="Cotizaciones">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <style>
   :root{
     --rojo:#FF0000;
@@ -165,6 +167,7 @@
   .ft .gracias .small{font-size:12px;}
 
   .hint{color:#cfcfcf;font-size:12px;text-align:center;margin:14px 0 0;}
+  body.exportando .no-print,body.exportando #toast{display:none !important;}
 
   /* ====== IMPRESIÓN / PDF ====== */
   @media print{
@@ -569,8 +572,28 @@ window.addEventListener('beforeprint', ajustarEscala);
 async function exportar(){
   const d=datos(); if(!d.num){alert('Ponle un número a la cotización.');return;}
   const ok=await guardar(); if(!ok)return;
-  ajustarEscala();
-  _avanzar=true; window.print();
+  if(!window.html2canvas||!window.jspdf){toast('Cargando módulo... intenta de nuevo en un momento.');return;}
+  const hoja=document.getElementById('hoja');
+  const prevW=hoja.style.width;
+  document.body.classList.add('exportando');
+  hoja.style.width='816px';           // ancho carta para layout de escritorio
+  await new Promise(r=>setTimeout(r,80));
+  try{
+    const canvas=await html2canvas(hoja,{scale:2,useCORS:true,backgroundColor:'#ffffff',windowWidth:900,width:816,scrollX:0,scrollY:0});
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({unit:'pt',format:'letter',orientation:'portrait'});
+    const pw=pdf.internal.pageSize.getWidth(), ph=pdf.internal.pageSize.getHeight();
+    let w=pw, h=pw*canvas.height/canvas.width;   // encajar por ancho
+    if(h>ph){ h=ph; w=ph*canvas.width/canvas.height; }   // si no cabe de alto, encajar por alto
+    pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',(pw-w)/2,0,w,h);
+    pdf.save('Cotizacion-'+String(d.num).padStart(4,'0')+'-SPMEDIA.pdf');
+    hoja.style.width=prevW; document.body.classList.remove('exportando');
+    await nueva();
+    toast('PDF generado ✔  Lista la N° '+val('numero'));
+  }catch(e){
+    hoja.style.width=prevW; document.body.classList.remove('exportando');
+    toast('Error al generar PDF: '+e.message);
+  }
 }
 window.addEventListener('afterprint',async()=>{if(_avanzar){_avanzar=false;await nueva();toast('Exportada ✔  Lista la N° '+val('numero'));}});
 
