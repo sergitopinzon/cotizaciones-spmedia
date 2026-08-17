@@ -1,5 +1,5 @@
-const CACHE = 'cot-spmedia-v7';
-const ASSETS = ['./', './index.html', './sp_media_logo.png', './icon-192.png', './icon-512.png', './manifest.json', './firma.png'];
+const CACHE = 'cot-spmedia-v8';
+const ASSETS = ['./', './index.html', './sp_media_logo.png', './icon-192.png', './icon-512.png', './manifest.json', './firma.png?v=2'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
