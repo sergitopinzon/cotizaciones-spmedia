@@ -28,7 +28,8 @@
 
   /* ====== BARRA DE HERRAMIENTAS (solo pantalla) ====== */
   .toolbar{position:sticky;top:0;z-index:50;background:var(--carbon);color:#fff;
-    display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;
+    display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+    padding:calc(10px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 10px calc(14px + env(safe-area-inset-left));
     box-shadow:0 2px 8px rgba(0,0,0,.35);}
   .toolbar .brand{font-weight:bold;margin-right:auto;display:flex;align-items:center;gap:8px;font-size:15px;}
   .toolbar .brand .sp{background:var(--rojo);color:#fff;padding:2px 7px;border-radius:3px;font-family:Impact,sans-serif;}
@@ -277,7 +278,13 @@
         <tbody id="filas"></tbody>
       </table>
       </div>
-      <button class="btn addrow no-print" onclick="agregarFila()">＋ Agregar fila</button>
+      <div class="addrow no-print" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        <button class="btn" onclick="agregarFila()">＋ Agregar fila</button>
+        <select id="pickarticulo" onchange="insertarArticulo(this.value)" style="padding:9px;border:1px solid var(--linea);border-radius:6px;font-size:13px;max-width:100%">
+          <option value="">📦 Insertar artículo guardado —</option>
+        </select>
+        <button class="btn2 del" onclick="eliminarArticulo()">🗑 Quitar del catálogo</button>
+      </div>
 
       <!-- TOTALES -->
       <div class="totrow">
@@ -287,10 +294,13 @@ Forma de pago: 50% adelanto, 50% contra entrega.</textarea>
         </div>
         <div class="totals">
           <div class="tr"><span>Subtotal</span><b id="t_sub">B/. 0.00</b></div>
+          <div class="tr" id="descrow" style="display:none"><span>Descuento (B/.)</span>
+            <b>- <input class="fld num" id="descuento" type="number" min="0" step="0.01" value="0" oninput="recalc()" style="width:80px;text-align:right"></b></div>
           <div class="tr"><span>ITBMS (7%)</span><b id="t_itbms">B/. 0.00</b></div>
           <div class="total impact" style="display:flex;justify-content:space-between">
             <span>TOTAL</span><span id="t_total">B/. 0.00</span>
           </div>
+          <button class="btn2 no-print" id="btndesc" onclick="toggleDescuento()" style="margin-top:8px;width:100%">＋ Agregar descuento</button>
         </div>
       </div>
 
@@ -386,7 +396,10 @@ function filaHTML(desc='',cant='',precio=''){
     <td class="cant"><input class="fld num" type="number" min="0" step="1" value="${cant}" oninput="recalc()"></td>
     <td class="precio"><input class="fld num" type="number" min="0" step="0.01" placeholder="0.00" value="${precio}" oninput="recalc()"></td>
     <td class="sub">B/. 0.00</td>
-    <td class="no-print"><button class="delrow" title="Quitar" onclick="this.closest('tr').remove();recalc()">×</button></td>
+    <td class="no-print" style="white-space:nowrap">
+      <button class="delrow" title="Guardar en catálogo" onclick="guardarArticuloFila(this)" style="color:var(--carbon);font-size:14px">💾</button>
+      <button class="delrow" title="Quitar" onclick="this.closest('tr').remove();recalc()">×</button>
+    </td>
   </tr>`;
 }
 function agregarFila(d,c,p){document.getElementById('filas').insertAdjacentHTML('beforeend',filaHTML(d,c,p));recalc();}
@@ -398,10 +411,21 @@ function recalc(){
     const p=parseFloat(tr.querySelectorAll('input')[2].value)||0;
     const s=c*p; sub+=s; tr.querySelector('.sub').textContent=money(s);
   });
-  const itbms=sub*0.07;
+  const descActivo=document.getElementById('descrow').style.display!=='none';
+  const desc=descActivo?(parseFloat(val('descuento'))||0):0;
+  const base=Math.max(0, sub-desc);
+  const itbms=base*0.07;
   document.getElementById('t_sub').textContent=money(sub);
   document.getElementById('t_itbms').textContent=money(itbms);
-  document.getElementById('t_total').textContent=money(sub+itbms);
+  document.getElementById('t_total').textContent=money(base+itbms);
+}
+function toggleDescuento(){
+  const row=document.getElementById('descrow');
+  const on=row.style.display==='none';
+  row.style.display=on?'flex':'none';
+  document.getElementById('btndesc').textContent=on?'✕ Quitar descuento':'＋ Agregar descuento';
+  if(!on)set('descuento','0');
+  recalc();
 }
 
 /* ---------- DATOS ---------- */
@@ -415,6 +439,7 @@ function datos(){
     empresa:val('c_empresa'),tel:val('c_tel'),contacto:val('c_contacto'),correo:val('c_correo'),
     nota:document.getElementById('nota').value,
     terms:document.getElementById('terms').innerHTML,
+    descuento:(document.getElementById('descrow').style.display!=='none')?(parseFloat(val('descuento'))||0):0,
     items
   };
 }
@@ -424,7 +449,7 @@ async function guardar(){
   if(!d.num){alert('Ponle un número a la cotización.');return false;}
   const {error}=await sb.from('cotizaciones').upsert({
     user_id:uid,num:d.num,fecha:d.fecha,empresa:d.empresa,tel:d.tel,contacto:d.contacto,
-    correo:d.correo,nota:d.nota,terms:d.terms,items:d.items,updated_at:new Date().toISOString()
+    correo:d.correo,nota:d.nota,terms:d.terms,descuento:d.descuento,items:d.items,updated_at:new Date().toISOString()
   },{onConflict:'user_id,num'});
   if(error){toast('Error al guardar: '+error.message);return false;}
   await autoGuardarCliente();
@@ -450,6 +475,9 @@ async function cargar(num){
   document.getElementById('filas').innerHTML='';
   const its=(data.items&&data.items.length?data.items:[{}]);
   its.forEach(it=>agregarFila(it.desc,it.cant,it.precio));
+  const dsc=parseFloat(data.descuento)||0;
+  if(dsc>0){document.getElementById('descrow').style.display='flex';document.getElementById('btndesc').textContent='✕ Quitar descuento';set('descuento',dsc);}
+  else{document.getElementById('descrow').style.display='none';document.getElementById('btndesc').textContent='＋ Agregar descuento';set('descuento','0');}
   recalc();
 }
 async function eliminar(){
@@ -538,7 +566,43 @@ async function nueva(){
   agregarFila('','','');agregarFila('','','');
   document.getElementById('lista').value='';
   document.getElementById('pickcliente').value='';
+  document.getElementById('descrow').style.display='none';
+  document.getElementById('btndesc').textContent='＋ Agregar descuento';
+  set('descuento','0');
   recalc();
+}
+
+/* ---------- CATÁLOGO DE ARTÍCULOS ---------- */
+let cacheArticulos={};
+async function loadArticulos(){
+  const {data,error}=await sb.from('articulos').select('*').order('descripcion');
+  if(error)return;
+  cacheArticulos={}; data.forEach(a=>cacheArticulos[a.descripcion]=a);
+  const sel=document.getElementById('pickarticulo');
+  sel.innerHTML='<option value="">📦 Insertar artículo guardado ('+data.length+') —</option>'+
+    data.map(a=>`<option value="${esc(a.descripcion)}">${esc(a.descripcion)}${a.precio!=null?' · '+money(a.precio):''}</option>`).join('');
+}
+async function guardarArticuloFila(btn){
+  const ins=btn.closest('tr').querySelectorAll('input');
+  const descripcion=ins[0].value.trim();
+  const precio=ins[2].value!==''?(parseFloat(ins[2].value)||0):null;
+  if(!descripcion){alert('Escribe la descripción del artículo primero.');return;}
+  const {error}=await sb.from('articulos').upsert({user_id:uid,descripcion,precio,updated_at:new Date().toISOString()},{onConflict:'user_id,descripcion'});
+  if(error){toast('Error: '+error.message);return;}
+  await loadArticulos(); toast('Artículo guardado ✔  '+descripcion);
+}
+function insertarArticulo(descripcion){
+  if(!descripcion)return;
+  const a=cacheArticulos[descripcion]; if(!a)return;
+  agregarFila(a.descripcion, 1, a.precio!=null?a.precio:'');
+  document.getElementById('pickarticulo').value='';
+}
+async function eliminarArticulo(){
+  const descripcion=document.getElementById('pickarticulo').value;
+  if(!descripcion){alert('Elige primero un artículo del menú para quitarlo.');return;}
+  if(!confirm('¿Quitar "'+descripcion+'" del catálogo?'))return;
+  await sb.from('articulos').delete().eq('descripcion',descripcion);
+  await loadArticulos(); toast('Artículo eliminado');
 }
 
 /* ---------- AVISO ---------- */
@@ -554,6 +618,7 @@ let _appReady=false;
 async function arrancarApp(){
   if(_appReady)return; _appReady=true;
   await loadClientes();
+  await loadArticulos();
   await loadCotizaciones();
   await nueva();
 }
