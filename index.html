@@ -581,11 +581,10 @@ async function exportar(){
   try{
     const canvas=await html2canvas(hoja,{scale:2,useCORS:true,backgroundColor:'#ffffff',windowWidth:900,width:816,scrollX:0,scrollY:0});
     const {jsPDF}=window.jspdf;
-    const pdf=new jsPDF({unit:'pt',format:'letter',orientation:'portrait'});
-    const pw=pdf.internal.pageSize.getWidth(), ph=pdf.internal.pageSize.getHeight();
-    let w=pw, h=pw*canvas.height/canvas.width;   // encajar por ancho
-    if(h>ph){ h=ph; w=ph*canvas.width/canvas.height; }   // si no cabe de alto, encajar por alto
-    pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',(pw-w)/2,0,w,h);
+    const wpt=612;                                // ancho carta (8.5in en pt)
+    const hpt=wpt*canvas.height/canvas.width;     // alto exacto del contenido: sin espacio en blanco
+    const pdf=new jsPDF({unit:'pt',format:[wpt,hpt],orientation:'portrait'});
+    pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',0,0,wpt,hpt);
     pdf.save('Cotizacion-'+String(d.num).padStart(4,'0')+'-SPMEDIA.pdf');
     hoja.style.width=prevW; document.body.classList.remove('exportando');
     await nueva();
