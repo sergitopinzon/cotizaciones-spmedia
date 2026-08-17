@@ -175,14 +175,19 @@
   }
 
   @media(max-width:640px){
-    .hd{flex-direction:column;gap:14px;align-items:flex-start;}
-    .badge{align-self:flex-end;font-size:30px;}
+    .hd{padding:10px 14px;gap:8px;}
+    .hd .logo-img{height:30px;}
+    .hd .sub{font-size:8px;letter-spacing:3px;}
+    .badge{font-size:20px;padding:5px 14px 5px 22px;}
     .cliente{grid-template-columns:1fr;}
     .cliente .cell:nth-child(odd){border-right:none;}
     .totrow{flex-direction:column;}
     .totals{width:100%;}
     .body{padding:16px 16px 0;}
-    .hd,.ft{padding:18px 16px;}
+    .ft{padding:10px 14px;}
+    .ft .gracias{padding:7px 14px 7px 26px;}
+    .ft .gracias .big{font-size:17px;}
+    .ft .gracias .small{font-size:10px;}
     .tablescroll{overflow-x:auto;}
   }
 </style>
