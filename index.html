@@ -144,9 +144,11 @@
   .terms:focus{outline:none;border-color:var(--rojo);background:#fff7f7;}
   .terms ul{margin:6px 0;padding-left:18px;}
 
-  .firma{display:flex;justify-content:space-between;align-items:flex-end;margin-top:26px;padding-top:6px;font-size:12px;}
+  .firma{display:flex;justify-content:space-between;align-items:flex-end;margin-top:16px;padding-top:6px;font-size:12px;}
   .firma .l{border-top:1px solid var(--carbon);padding-top:4px;width:230px;color:var(--gris);}
-  .firma .r{font-weight:bold;}
+  .firma .r{text-align:center;}
+  .firma-img{height:56px;width:auto;display:block;margin:0 auto -8px;}
+  .firma-nombre{border-top:1px solid var(--carbon);padding-top:4px;font-weight:bold;min-width:200px;}
 
   /* Footer */
   .ft{background:var(--carbon);color:#fff;display:flex;justify-content:space-between;align-items:center;
@@ -319,7 +321,10 @@ Forma de pago: 50% adelanto, 50% contra entrega.</textarea>
 
       <div class="firma">
         <div class="l">Firma / Aprobación del Cliente</div>
-        <div class="r">Sergio Pinzón — SP MEDIA</div>
+        <div class="r">
+          <img class="firma-img" src="firma.png" alt="Firma Sergio Pinzón">
+          <div class="firma-nombre">Sergio Pinzón — SP MEDIA</div>
+        </div>
       </div>
     </div>
 
