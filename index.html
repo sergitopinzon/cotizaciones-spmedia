@@ -170,8 +170,8 @@
   @media print{
     @page{size:Letter;margin:0;}
     html,body{background:#fff;}
-    .toolbar,.addrow,.delrow,.hint,.no-print{display:none !important;}
-    .wrap{margin:0;padding:0;max-width:none;height:11in;overflow:hidden;}
+    .toolbar,.addrow,.delrow,.hint,.no-print,#toast{display:none !important;}
+    .wrap{margin:0;padding:0;max-width:none;height:9.9in;overflow:hidden;}
     .hoja{box-shadow:none;width:8.5in;transform:scale(var(--pscale,1));transform-origin:top center;}
     .fld:focus,.terms:focus,.nota textarea:focus{background:transparent;border-color:transparent;}
     .fld,.terms,.nota textarea{border-color:transparent !important;}
@@ -562,7 +562,7 @@ function ajustarEscala(){
   hoja.style.width='816px';
   const h=hoja.scrollHeight;
   hoja.style.width=prevW; hoja.style.transform=prevT;
-  const scale=Math.min(1, (1056-6)/h);
+  const scale=Math.min(1, 950/h);
   document.documentElement.style.setProperty('--pscale', scale.toFixed(4));
 }
 window.addEventListener('beforeprint', ajustarEscala);
