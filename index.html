@@ -169,8 +169,8 @@
     @page{size:Letter;margin:0;}
     html,body{background:#fff;}
     .toolbar,.addrow,.delrow,.hint,.no-print{display:none !important;}
-    .wrap{margin:0;padding:0;max-width:100%;}
-    .hoja{box-shadow:none;}
+    .wrap{margin:0;padding:0;max-width:none;height:11in;overflow:hidden;}
+    .hoja{box-shadow:none;width:8.5in;transform:scale(var(--pscale,1));transform-origin:top center;}
     .fld:focus,.terms:focus,.nota textarea:focus{background:transparent;border-color:transparent;}
     .fld,.terms,.nota textarea{border-color:transparent !important;}
   }
@@ -548,9 +548,22 @@ async function enviarWhatsApp(){
 
 /* ---------- EXPORTAR + CONTEO ---------- */
 let _avanzar=false;
+function ajustarEscala(){
+  // mide la hoja a ancho carta (816px = 8.5in @96dpi) y la escala para caber en una pagina (1056px = 11in)
+  const hoja=document.getElementById('hoja');
+  const prevW=hoja.style.width, prevT=hoja.style.transform;
+  hoja.style.transform='none';
+  hoja.style.width='816px';
+  const h=hoja.scrollHeight;
+  hoja.style.width=prevW; hoja.style.transform=prevT;
+  const scale=Math.min(1, (1056-6)/h);
+  document.documentElement.style.setProperty('--pscale', scale.toFixed(4));
+}
+window.addEventListener('beforeprint', ajustarEscala);
 async function exportar(){
   const d=datos(); if(!d.num){alert('Ponle un número a la cotización.');return;}
   const ok=await guardar(); if(!ok)return;
+  ajustarEscala();
   _avanzar=true; window.print();
 }
 window.addEventListener('afterprint',async()=>{if(_avanzar){_avanzar=false;await nueva();toast('Exportada ✔  Lista la N° '+val('numero'));}});
