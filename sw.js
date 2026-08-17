@@ -1,4 +1,4 @@
-const CACHE = 'cot-spmedia-v6';
+const CACHE = 'cot-spmedia-v7';
 const ASSETS = ['./', './index.html', './sp_media_logo.png', './icon-192.png', './icon-512.png', './manifest.json', './firma.png'];
 
 self.addEventListener('install', e => {
