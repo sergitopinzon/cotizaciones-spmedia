@@ -168,6 +168,21 @@
 
   .hint{color:#cfcfcf;font-size:12px;text-align:center;margin:14px 0 0;}
   body.exportando .no-print,body.exportando #toast,body.exportando .sec .tri{display:none !important;}
+
+  /* Modal Resumen */
+  .modal{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.5);align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto;}
+  .modal-card{background:#fff;border-radius:12px;max-width:520px;width:100%;padding:20px 22px;box-shadow:0 12px 44px rgba(0,0,0,.45);}
+  .modal-head{font-size:18px;font-weight:bold;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
+  .modal-head button{border:none;background:none;font-size:20px;cursor:pointer;color:#999;}
+  .rescards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+  .rescard{background:var(--fila);border-radius:8px;padding:12px;text-align:center;font-size:12px;color:var(--gris);}
+  .rescard .resn{font-size:19px;font-weight:bold;color:var(--carbon);margin-bottom:3px;}
+  .rescard.ok{background:#e8f7ec;} .rescard.ok .resn{color:#1a8f3c;}
+  .rescard.pend{background:#fff5e6;} .rescard.pend .resn{color:#b8790a;}
+  .resh{font-size:13px;font-weight:bold;color:var(--carbon);margin:6px 0 4px;}
+  .restab{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px;}
+  .restab td{padding:6px 8px;border-bottom:1px solid var(--linea);}
+  .restab td:last-child{text-align:right;font-weight:bold;}
   body.exportando .hoja{min-height:1056px;display:flex;flex-direction:column;}
   body.exportando .body{flex:1 1 auto;display:flex;flex-direction:column;}
   body.exportando .spacer{flex:1 1 auto;min-height:24px;}
@@ -221,13 +236,23 @@
   <div class="brand"><span class="sp impact">SP</span> Cotizaciones</div>
   <button class="btn" onclick="nueva()">＋ Nueva</button>
   <button class="btn rojo" onclick="guardar()">💾 Guardar</button>
-  <button class="btn" onclick="exportar()">📄 Exportar PDF</button>
+  <button class="btn" onclick="duplicar()">⧉ Duplicar</button>
+  <button class="btn" onclick="exportar()">📄 PDF</button>
   <button class="btn wa" onclick="enviarWhatsApp()">💬 WhatsApp</button>
+  <input class="saved" id="buscar" placeholder="🔍 N° o cliente" oninput="filtrarLista()" style="max-width:130px">
   <select class="saved" id="lista" onchange="cargar(this.value)">
     <option value="">— Cotizaciones guardadas —</option>
   </select>
+  <select class="saved" id="estado" onchange="marcarEstado()" title="Estado de esta cotización" style="max-width:150px">
+    <option value="borrador">📝 Borrador</option>
+    <option value="enviada">📤 Enviada</option>
+    <option value="aprobada">✅ Aprobada</option>
+    <option value="rechazada">❌ Rechazada</option>
+  </select>
+  <button class="btn ghost" onclick="abrirResumen()">📊 Resumen</button>
+  <button class="btn ghost" onclick="exportarExcel()">⬇️ Excel</button>
   <button class="btn ghost" onclick="eliminar()">🗑 Eliminar</button>
-  <button class="btn ghost" onclick="cambiarContrasena()">🔑 Contraseña</button>
+  <button class="btn ghost" onclick="cambiarContrasena()" title="Cambiar contraseña">🔑</button>
   <button class="btn ghost" onclick="cerrarSesion()">Salir</button>
 </div>
 
@@ -304,8 +329,11 @@
         <div class="nota"><input type="hidden" id="nota"></div>
         <div class="totals">
           <div class="tr"><span>Subtotal</span><b id="t_sub">B/. 0.00</b></div>
-          <div class="tr" id="descrow" style="display:none"><span>Descuento (B/.)</span>
-            <b>- <input class="fld num" id="descuento" type="number" min="0" step="0.01" value="0" oninput="recalc()" style="width:80px;text-align:right"></b></div>
+          <div class="tr" id="descrow" style="display:none">
+            <span>Descuento<span id="descpct"></span>
+              <button class="btn2 no-print" id="desctipo" onclick="toggleDescTipo()" style="padding:2px 7px;font-size:11px;margin-left:4px">B/.</button>
+              <input class="fld num no-print" id="descuento" type="number" min="0" step="0.01" value="0" oninput="recalc()" style="width:58px;text-align:right;border-bottom:1px solid var(--linea)"></span>
+            <b id="t_desc">- B/. 0.00</b></div>
           <div class="tr"><span>ITBMS (7%)</span><b id="t_itbms">B/. 0.00</b></div>
           <div class="total impact" style="display:flex;justify-content:space-between">
             <span>TOTAL</span><span id="t_total">B/. 0.00</span>
@@ -351,11 +379,19 @@
   <p class="hint no-print">💡 Escribe directamente sobre la cotización. Al “Exportar PDF”, en el diálogo elige <b>“Guardar como PDF”</b>. Todo se guarda en este dispositivo.</p>
 </div>
 
+<!-- MODAL RESUMEN -->
+<div id="resumen" class="modal no-print" onclick="if(event.target===this)cerrarResumen()">
+  <div class="modal-card">
+    <div class="modal-head"><span>📊 Resumen del mes</span><button onclick="cerrarResumen()">✕</button></div>
+    <div id="resumen-body"></div>
+  </div>
+</div>
+
 <script>
 const SB_URL='https://rrnaziahkwatybudapqj.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJybmF6aWFoa3dhdHlidWRhcHFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MzU0MjksImV4cCI6MjEwMjQxMTQyOX0.zQSABDEtuk3owEaImLfixVEnKzisoO8II65DkFA5SRI';
 const sb = window.supabase.createClient(SB_URL, SB_KEY, {auth:{persistSession:true,detectSessionInUrl:true,autoRefreshToken:true}});
-let uid=null, cacheClientes={};
+let uid=null, cacheClientes={}, descTipo='monto', todasCotizaciones=[];
 
 const money=n=>'B/. '+(Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const esc=s=>String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;');
@@ -414,21 +450,35 @@ function filaHTML(desc='',cant='',precio=''){
   </tr>`;
 }
 function agregarFila(d,c,p){document.getElementById('filas').insertAdjacentHTML('beforeend',filaHTML(d,c,p));recalc();}
-function recalc(){
+function calcular(){
   let sub=0;
+  document.querySelectorAll('#filas tr').forEach(tr=>{
+    const c=parseFloat(tr.querySelectorAll('input')[1].value)||0;
+    const p=parseFloat(tr.querySelectorAll('input')[2].value)||0;
+    sub+=c*p;
+  });
+  const activo=document.getElementById('descrow').style.display!=='none';
+  const dv=parseFloat(val('descuento'))||0;
+  const descAmount=activo?(descTipo==='porcentaje'?sub*dv/100:dv):0;
+  const base=Math.max(0, sub-descAmount);
+  const itbms=base*0.07;
+  return {sub,descAmount,itbms,total:base+itbms};
+}
+function recalc(){
   document.querySelectorAll('#filas tr').forEach((tr,i)=>{
     tr.querySelector('.n').textContent=i+1;
     const c=parseFloat(tr.querySelectorAll('input')[1].value)||0;
     const p=parseFloat(tr.querySelectorAll('input')[2].value)||0;
-    const s=c*p; sub+=s; tr.querySelector('.sub').textContent=money(s);
+    tr.querySelector('.sub').textContent=money(c*p);
   });
-  const descActivo=document.getElementById('descrow').style.display!=='none';
-  const desc=descActivo?(parseFloat(val('descuento'))||0):0;
-  const base=Math.max(0, sub-desc);
-  const itbms=base*0.07;
-  document.getElementById('t_sub').textContent=money(sub);
-  document.getElementById('t_itbms').textContent=money(itbms);
-  document.getElementById('t_total').textContent=money(base+itbms);
+  const r=calcular();
+  const activo=document.getElementById('descrow').style.display!=='none';
+  const dv=parseFloat(val('descuento'))||0;
+  document.getElementById('t_sub').textContent=money(r.sub);
+  document.getElementById('t_desc').textContent='- '+money(r.descAmount);
+  document.getElementById('descpct').textContent=(activo&&descTipo==='porcentaje')?(' ('+dv+'%)'):'';
+  document.getElementById('t_itbms').textContent=money(r.itbms);
+  document.getElementById('t_total').textContent=money(r.total);
 }
 function toggleDescuento(){
   const row=document.getElementById('descrow');
@@ -436,6 +486,11 @@ function toggleDescuento(){
   row.style.display=on?'flex':'none';
   document.getElementById('btndesc').textContent=on?'✕ Quitar descuento':'＋ Agregar descuento';
   if(!on)set('descuento','0');
+  recalc();
+}
+function toggleDescTipo(){
+  descTipo=descTipo==='monto'?'porcentaje':'monto';
+  document.getElementById('desctipo').textContent=descTipo==='monto'?'B/.':'%';
   recalc();
 }
 
@@ -451,6 +506,7 @@ function datos(){
     nota:document.getElementById('nota').value,
     terms:document.getElementById('terms').innerHTML,
     descuento:(document.getElementById('descrow').style.display!=='none')?(parseFloat(val('descuento'))||0):0,
+    descuento_tipo:descTipo, estado:val('estado'), total:calcular().total,
     items
   };
 }
@@ -460,7 +516,8 @@ async function guardar(){
   if(!d.num){alert('Ponle un número a la cotización.');return false;}
   const {error}=await sb.from('cotizaciones').upsert({
     user_id:uid,num:d.num,fecha:d.fecha,empresa:d.empresa,tel:d.tel,contacto:d.contacto,
-    correo:d.correo,nota:d.nota,terms:d.terms,descuento:d.descuento,items:d.items,updated_at:new Date().toISOString()
+    correo:d.correo,nota:d.nota,terms:d.terms,descuento:d.descuento,descuento_tipo:d.descuento_tipo,
+    estado:d.estado,total:d.total,items:d.items,updated_at:new Date().toISOString()
   },{onConflict:'user_id,num'});
   if(error){toast('Error al guardar: '+error.message);return false;}
   await autoGuardarCliente();
@@ -469,12 +526,22 @@ async function guardar(){
   return true;
 }
 async function loadCotizaciones(){
-  const sel=document.getElementById('lista');
-  const {data,error}=await sb.from('cotizaciones').select('num,empresa').order('num',{ascending:false});
+  const {data,error}=await sb.from('cotizaciones').select('num,empresa,estado,total,created_at').order('num',{ascending:false});
   if(error)return;
-  sel.innerHTML='<option value="">— Cotizaciones guardadas ('+data.length+') —</option>'+
-    data.map(d=>`<option value="${d.num}">N° ${String(d.num).padStart(4,'0')} · ${esc(d.empresa||'sin cliente')}</option>`).join('');
+  todasCotizaciones=data||[];
+  renderLista();
 }
+function iconoEstado(e){return ({borrador:'📝',enviada:'📤',aprobada:'✅',rechazada:'❌'}[e]||'📝');}
+function renderLista(){
+  const sel=document.getElementById('lista');
+  const q=(document.getElementById('buscar').value||'').trim().toLowerCase();
+  const items=todasCotizaciones.filter(d=>!q||String(d.num).padStart(4,'0').includes(q)||(d.empresa||'').toLowerCase().includes(q));
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— Guardadas ('+items.length+') —</option>'+
+    items.map(d=>`<option value="${d.num}">${iconoEstado(d.estado)} N° ${String(d.num).padStart(4,'0')} · ${esc(d.empresa||'sin cliente')}</option>`).join('');
+  sel.value=cur;
+}
+function filtrarLista(){renderLista();}
 async function cargar(num){
   if(!num)return;
   const {data,error}=await sb.from('cotizaciones').select('*').eq('num',num).single();
@@ -489,6 +556,9 @@ async function cargar(num){
   const dsc=parseFloat(data.descuento)||0;
   if(dsc>0){document.getElementById('descrow').style.display='flex';document.getElementById('btndesc').textContent='✕ Quitar descuento';set('descuento',dsc);}
   else{document.getElementById('descrow').style.display='none';document.getElementById('btndesc').textContent='＋ Agregar descuento';set('descuento','0');}
+  descTipo=data.descuento_tipo||'monto';
+  document.getElementById('desctipo').textContent=descTipo==='porcentaje'?'%':'B/.';
+  set('estado',data.estado||'borrador');
   recalc();
 }
 async function eliminar(){
@@ -543,18 +613,61 @@ async function eliminarCliente(){
 /* ---------- WHATSAPP ---------- */
 function telWhats(raw){let d=(raw||'').replace(/\D/g,'');if(!d)return '';if(d.length===8)d='507'+d;return d;}
 async function enviarWhatsApp(){
-  const d=datos(); let sub=0;
-  const lineas=d.items.map((it,i)=>{const c=parseFloat(it.cant)||0,p=parseFloat(it.precio)||0,s=c*p;sub+=s;
-    return `${i+1}. ${it.desc||'(sin descripción)'} — ${c} x ${money(p)} = ${money(s)}`;});
-  const itbms=sub*0.07,total=sub+itbms;
+  const d=datos(); const r=calcular();
+  const lineas=d.items.map((it,i)=>{const c=parseFloat(it.cant)||0,p=parseFloat(it.precio)||0;
+    return `${i+1}. ${it.desc||'(sin descripción)'} — ${c} x ${money(p)} = ${money(c*p)}`;});
   let msg=`*COTIZACIÓN N° ${String(d.num).padStart(4,'0')} — SP MEDIA*\n`;
   if(d.empresa)msg+=`Cliente: ${d.empresa}\n`;
   if(d.fecha)msg+=`Fecha: ${d.fecha}\n`;
   msg+=`--------------------------------\n`+(lineas.length?lineas.join('\n'):'(sin ítems)')+'\n';
-  msg+=`--------------------------------\nSubtotal: ${money(sub)}\nITBMS (7%): ${money(itbms)}\n*TOTAL: ${money(total)}*\n\n`;
+  msg+=`--------------------------------\nSubtotal: ${money(r.sub)}\n`;
+  if(r.descAmount>0)msg+=`Descuento: - ${money(r.descAmount)}\n`;
+  msg+=`ITBMS (7%): ${money(r.itbms)}\n*TOTAL: ${money(r.total)}*\n\n`;
   msg+=`Validez 15 días. Forma de pago: 50% adelanto, 50% contra entrega.\nSP MEDIA · Producción Audiovisual · +507 6444-8061`;
   await guardar();
   window.open('https://wa.me/'+telWhats(d.tel)+'?text='+encodeURIComponent(msg),'_blank');
+}
+
+/* ---------- ESTADO / DUPLICAR / RESUMEN / EXCEL ---------- */
+async function marcarEstado(){ if(parseInt(val('numero')))await guardar(); }
+async function duplicar(){
+  const next=await nextNumber();
+  set('numero',String(next).padStart(4,'0'));
+  const h=new Date();
+  set('fecha',String(h.getDate()).padStart(2,'0')+'/'+String(h.getMonth()+1).padStart(2,'0')+'/'+h.getFullYear());
+  set('estado','borrador');
+  document.getElementById('lista').value='';
+  toast('Duplicada como N° '+String(next).padStart(4,'0')+' — revisa y guarda');
+}
+function mesDe(iso){return (iso||'').slice(0,7);}
+function abrirResumen(){
+  const m=new Date().toISOString().slice(0,7);
+  const delMes=todasCotizaciones.filter(d=>mesDe(d.created_at)===m);
+  const suma=e=>delMes.filter(d=>d.estado===e).reduce((a,d)=>a+Number(d.total||0),0);
+  const cnt=e=>delMes.filter(d=>d.estado===e).length;
+  const totalCot=delMes.reduce((a,d)=>a+Number(d.total||0),0);
+  const meses={};
+  todasCotizaciones.forEach(d=>{if(d.estado==='aprobada'){const k=mesDe(d.created_at);meses[k]=(meses[k]||0)+Number(d.total||0);}});
+  const ult=Object.keys(meses).sort().reverse().slice(0,6);
+  let html=`<div class="rescards">
+    <div class="rescard"><div class="resn">${delMes.length}</div>Cotizaciones del mes</div>
+    <div class="rescard"><div class="resn">${money(totalCot)}</div>Total cotizado</div>
+    <div class="rescard ok"><div class="resn">${money(suma('aprobada'))}</div>Aprobado (${cnt('aprobada')})</div>
+    <div class="rescard pend"><div class="resn">${money(suma('enviada'))}</div>Enviadas pendientes (${cnt('enviada')})</div>
+  </div>`;
+  html+=`<div class="resh">Aprobado por mes</div>`;
+  html+= ult.length ? '<table class="restab">'+ult.map(k=>`<tr><td>${k}</td><td>${money(meses[k])}</td></tr>`).join('')+'</table>' : '<p style="color:#999;font-size:13px">Aún no hay cotizaciones aprobadas.</p>';
+  document.getElementById('resumen-body').innerHTML=html;
+  document.getElementById('resumen').style.display='flex';
+}
+function cerrarResumen(){document.getElementById('resumen').style.display='none';}
+function exportarExcel(){
+  const rows=[['N°','Fecha','Cliente','Estado','Total (B/.)']];
+  todasCotizaciones.slice().sort((a,b)=>a.num-b.num).forEach(d=>rows.push([String(d.num).padStart(4,'0'),(d.created_at||'').slice(0,10),d.empresa||'',d.estado||'',Number(d.total||0).toFixed(2)]));
+  const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Cotizaciones-SPMEDIA.csv';a.click();
+  toast('Respaldo Excel descargado ✔');
 }
 
 /* ---------- EXPORTAR + CONTEO ---------- */
@@ -615,6 +728,8 @@ async function nueva(){
   document.getElementById('descrow').style.display='none';
   document.getElementById('btndesc').textContent='＋ Agregar descuento';
   set('descuento','0');
+  descTipo='monto'; document.getElementById('desctipo').textContent='B/.';
+  set('estado','borrador');
   recalc();
 }
 
