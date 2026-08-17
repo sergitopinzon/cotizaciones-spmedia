@@ -104,6 +104,7 @@
   .cliente{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--linea);}
   .cliente .cell{padding:8px 10px;border-bottom:1px solid var(--linea);display:flex;align-items:center;gap:6px;font-size:13px;}
   .cliente .cell:nth-child(odd){border-right:1px solid var(--linea);}
+  .cliente .cell-full{grid-column:1 / -1;border-right:none !important;}
   .cliente .cell b{white-space:nowrap;}
 
   /* Inputs inline estilo documento */
@@ -263,9 +264,9 @@
       </div>
       <div class="cliente">
         <div class="cell"><b>Cliente / Empresa:</b><input class="fld" id="c_empresa" placeholder="Nombre del cliente"></div>
-        <div class="cell"><b>Teléfono:</b><input class="fld" id="c_tel" placeholder="+507"></div>
         <div class="cell"><b>Contacto:</b><input class="fld" id="c_contacto" placeholder="Persona de contacto"></div>
-        <div class="cell"><b>Correo:</b><input class="fld" id="c_correo" placeholder="correo@ejemplo.com"></div>
+        <div class="cell cell-full"><b>Correo:</b><input class="fld" id="c_correo" placeholder="correo@ejemplo.com"></div>
+        <input type="hidden" id="c_tel">
       </div>
 
       <!-- ITEMS -->
