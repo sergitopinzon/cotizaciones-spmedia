@@ -168,6 +168,9 @@
 
   .hint{color:#cfcfcf;font-size:12px;text-align:center;margin:14px 0 0;}
   body.exportando .no-print,body.exportando #toast,body.exportando .sec .tri{display:none !important;}
+  body.exportando .hoja{min-height:1056px;display:flex;flex-direction:column;}
+  body.exportando .body{flex:1 1 auto;display:flex;flex-direction:column;}
+  body.exportando .spacer{flex:1 1 auto;min-height:24px;}
 
   /* ====== IMPRESIÓN / PDF ====== */
   @media print{
@@ -313,6 +316,8 @@ Forma de pago: 50% adelanto, 50% contra entrega.</textarea>
           <button class="btn2 no-print" id="btndesc" onclick="toggleDescuento()" style="margin-top:8px;width:100%">＋ Agregar descuento</button>
         </div>
       </div>
+
+      <div class="spacer"></div>
 
       <!-- TÉRMINOS -->
       <div class="sec"><div class="tag impact" style="font-size:20px;padding-right:40px">TÉRMINOS Y CONDICIONES</div><div class="line"></div><div class="tri"></div></div>
@@ -581,10 +586,13 @@ async function exportar(){
   try{
     const canvas=await html2canvas(hoja,{scale:2,useCORS:true,backgroundColor:'#ffffff',windowWidth:900,width:816,scrollX:0,scrollY:0});
     const {jsPDF}=window.jspdf;
-    const wpt=612;                                // ancho carta (8.5in en pt)
-    const hpt=wpt*canvas.height/canvas.width;     // alto exacto del contenido: sin espacio en blanco
-    const pdf=new jsPDF({unit:'pt',format:[wpt,hpt],orientation:'portrait'});
-    pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',0,0,wpt,hpt);
+    const LW=612, LH=792;                         // carta en pt (8.5x11in)
+    const pdf=new jsPDF({unit:'pt',format:'letter',orientation:'portrait'});
+    const cAsp=canvas.width/canvas.height;
+    let w,h,x;
+    if(cAsp>=LW/LH){ w=LW; h=LW/cAsp; x=0; }      // llena la carta (la hoja se fuerza a min 1056px de alto)
+    else{ h=LH; w=LH*cAsp; x=(LW-w)/2; }          // contenido muy alto: encaja por alto, centrado
+    pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',x,0,w,h);
     pdf.save('Cotizacion-'+String(d.num).padStart(4,'0')+'-SPMEDIA.pdf');
     hoja.style.width=prevW; document.body.classList.remove('exportando');
     await nueva();
