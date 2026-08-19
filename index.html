@@ -115,6 +115,7 @@
   .fld:focus{outline:none;border-bottom:1px dashed var(--rojo);background:#fff7f7;}
   .fld::placeholder{color:#bdbdbd;}
   textarea.fld{resize:none;overflow:hidden;line-height:1.35;min-height:22px;vertical-align:middle;display:block;}
+  .fdesc-print{font-size:13px;color:var(--carbon);padding:2px 3px;line-height:1.35;white-space:pre-wrap;word-break:break-word;width:100%;}
 
   /* Tabla de items */
   table.items{width:100%;border-collapse:collapse;margin-top:4px;font-size:13px;}
@@ -466,6 +467,22 @@ function filaHTML(desc='',cant='',precio=''){
   </tr>`;
 }
 function auts(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+/* html2canvas no renderiza texto de <textarea>: lo cambiamos por <div> al exportar */
+function prepExport(){
+  const tas=[...document.querySelectorAll('#filas .fdesc')];
+  tas.forEach(ta=>{
+    const div=document.createElement('div');
+    div.className='fdesc-print';
+    div.textContent=ta.value;
+    ta.style.display='none';
+    ta.parentNode.insertBefore(div,ta);
+  });
+  return tas;
+}
+function unprepExport(tas){
+  document.querySelectorAll('.fdesc-print').forEach(d=>d.remove());
+  (tas||[]).forEach(ta=>{ta.style.display='';});
+}
 function agregarFila(d,c,p){const f=document.getElementById('filas');f.insertAdjacentHTML('beforeend',filaHTML(d,c,p));const ta=f.lastElementChild.querySelector('.fdesc');if(ta)auts(ta);recalc();}
 function calcular(){
   let sub=0;
@@ -711,9 +728,11 @@ async function exportar(){
   const prevW=hoja.style.width;
   document.body.classList.add('exportando');
   hoja.style.width='816px';           // ancho carta para layout de escritorio
+  const _tas=prepExport();            // textarea -> div (html2canvas los recorta)
   await new Promise(r=>setTimeout(r,80));
   try{
     const canvas=await html2canvas(hoja,{scale:2,useCORS:true,backgroundColor:'#ffffff',windowWidth:900,width:816,scrollX:0,scrollY:0});
+    unprepExport(_tas);
     const {jsPDF}=window.jspdf;
     const LW=612, LH=792;                         // carta en pt (8.5x11in)
     const pdf=new jsPDF({unit:'pt',format:'letter',orientation:'portrait'});
@@ -727,6 +746,7 @@ async function exportar(){
     await nueva();
     toast('PDF generado ✔  Lista la N° '+val('numero'));
   }catch(e){
+    unprepExport(_tas);
     hoja.style.width=prevW; document.body.classList.remove('exportando');
     toast('Error al generar PDF: '+e.message);
   }
