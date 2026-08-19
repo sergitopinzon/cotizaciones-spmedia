@@ -477,11 +477,16 @@ function prepExport(){
     ta.style.display='none';
     ta.parentNode.insertBefore(div,ta);
   });
-  return tas;
+  // Campos vacíos: quitar el placeholder para que NO salga el texto de ejemplo en el PDF
+  const phs=[...document.querySelectorAll('#hoja input, #hoja textarea')]
+    .filter(el=>el.value==='' && el.getAttribute('placeholder'));
+  phs.forEach(el=>{ el.dataset._ph=el.getAttribute('placeholder'); el.setAttribute('placeholder',''); });
+  return {tas,phs};
 }
-function unprepExport(tas){
+function unprepExport(st){
   document.querySelectorAll('.fdesc-print').forEach(d=>d.remove());
-  (tas||[]).forEach(ta=>{ta.style.display='';});
+  ((st&&st.tas)||[]).forEach(ta=>{ta.style.display='';});
+  ((st&&st.phs)||[]).forEach(el=>{ if(el.dataset._ph!=null){el.setAttribute('placeholder',el.dataset._ph); delete el.dataset._ph;} });
 }
 function agregarFila(d,c,p){const f=document.getElementById('filas');f.insertAdjacentHTML('beforeend',filaHTML(d,c,p));const ta=f.lastElementChild.querySelector('.fdesc');if(ta)auts(ta);recalc();}
 function calcular(){
