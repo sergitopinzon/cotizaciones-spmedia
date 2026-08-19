@@ -114,6 +114,7 @@
     color:var(--carbon);padding:2px 3px;width:100%;font-family:inherit;}
   .fld:focus{outline:none;border-bottom:1px dashed var(--rojo);background:#fff7f7;}
   .fld::placeholder{color:#bdbdbd;}
+  textarea.fld{resize:none;overflow:hidden;line-height:1.35;min-height:22px;vertical-align:middle;display:block;}
 
   /* Tabla de items */
   table.items{width:100%;border-collapse:collapse;margin-top:4px;font-size:13px;}
@@ -454,9 +455,9 @@ async function cerrarSesion(){await sb.auth.signOut();location.reload();}
 function filaHTML(desc='',cant='',precio=''){
   return `<tr>
     <td class="n"></td>
-    <td><input class="fld" placeholder="Equipo o servicio" value="${esc(desc)}" oninput="recalc()"></td>
-    <td class="cant"><input class="fld num" type="number" min="0" step="1" value="${cant}" oninput="recalc()"></td>
-    <td class="precio"><input class="fld num" type="number" min="0" step="0.01" placeholder="0.00" value="${precio}" oninput="recalc()"></td>
+    <td><textarea class="fld fdesc" rows="1" placeholder="Equipo o servicio" oninput="auts(this);recalc()">${esc(desc)}</textarea></td>
+    <td class="cant"><input class="fld num fcant" type="number" min="0" step="1" value="${cant}" oninput="recalc()"></td>
+    <td class="precio"><input class="fld num fprecio" type="number" min="0" step="0.01" placeholder="0.00" value="${precio}" oninput="recalc()"></td>
     <td class="sub">B/. 0.00</td>
     <td class="no-print" style="white-space:nowrap">
       <button class="delrow" title="Guardar en catálogo" onclick="guardarArticuloFila(this)" style="color:var(--carbon);font-size:14px">💾</button>
@@ -464,12 +465,13 @@ function filaHTML(desc='',cant='',precio=''){
     </td>
   </tr>`;
 }
-function agregarFila(d,c,p){document.getElementById('filas').insertAdjacentHTML('beforeend',filaHTML(d,c,p));recalc();}
+function auts(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+function agregarFila(d,c,p){const f=document.getElementById('filas');f.insertAdjacentHTML('beforeend',filaHTML(d,c,p));const ta=f.lastElementChild.querySelector('.fdesc');if(ta)auts(ta);recalc();}
 function calcular(){
   let sub=0;
   document.querySelectorAll('#filas tr').forEach(tr=>{
-    const c=parseFloat(tr.querySelectorAll('input')[1].value)||0;
-    const p=parseFloat(tr.querySelectorAll('input')[2].value)||0;
+    const c=parseFloat(tr.querySelector('.fcant').value)||0;
+    const p=parseFloat(tr.querySelector('.fprecio').value)||0;
     sub+=c*p;
   });
   const activo=document.getElementById('descrow').style.display!=='none';
@@ -482,8 +484,8 @@ function calcular(){
 function recalc(){
   document.querySelectorAll('#filas tr').forEach((tr,i)=>{
     tr.querySelector('.n').textContent=i+1;
-    const c=parseFloat(tr.querySelectorAll('input')[1].value)||0;
-    const p=parseFloat(tr.querySelectorAll('input')[2].value)||0;
+    const c=parseFloat(tr.querySelector('.fcant').value)||0;
+    const p=parseFloat(tr.querySelector('.fprecio').value)||0;
     tr.querySelector('.sub').textContent=money(c*p);
   });
   const r=calcular();
@@ -512,8 +514,7 @@ function toggleDescTipo(){
 /* ---------- DATOS ---------- */
 function datos(){
   const items=[...document.querySelectorAll('#filas tr')].map(tr=>{
-    const i=tr.querySelectorAll('input');
-    return {desc:i[0].value,cant:i[1].value,precio:i[2].value};
+    return {desc:tr.querySelector('.fdesc').value,cant:tr.querySelector('.fcant').value,precio:tr.querySelector('.fprecio').value};
   }).filter(x=>x.desc||x.cant||x.precio);
   return {
     num:parseInt(val('numero'))||0, fecha:val('fecha'),
@@ -762,9 +763,10 @@ async function loadArticulos(){
     data.map(a=>`<option value="${esc(a.descripcion)}">${esc(a.descripcion)}${a.precio!=null?' · '+money(a.precio):''}</option>`).join('');
 }
 async function guardarArticuloFila(btn){
-  const ins=btn.closest('tr').querySelectorAll('input');
-  const descripcion=ins[0].value.trim();
-  const precio=ins[2].value!==''?(parseFloat(ins[2].value)||0):null;
+  const tr=btn.closest('tr');
+  const descripcion=tr.querySelector('.fdesc').value.trim();
+  const pv=tr.querySelector('.fprecio').value;
+  const precio=pv!==''?(parseFloat(pv)||0):null;
   if(!descripcion){alert('Escribe la descripción del artículo primero.');return;}
   const {error}=await sb.from('articulos').upsert({user_id:uid,descripcion,precio,updated_at:new Date().toISOString()},{onConflict:'user_id,descripcion'});
   if(error){toast('Error: '+error.message);return;}
